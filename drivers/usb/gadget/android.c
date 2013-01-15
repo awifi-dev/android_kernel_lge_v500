@@ -2766,6 +2766,7 @@ static ssize_t enable_store(struct device *pdev, struct device_attribute *attr,
 	int enabled = 0;
 	static DEFINE_RATELIMIT_STATE(rl, 10*HZ, 1);
 
+
 	if (!cdev)
 		return -ENODEV;
 
