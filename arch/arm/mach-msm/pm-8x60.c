@@ -79,6 +79,7 @@ module_param_named(
 static int msm_pm_sleep_time_override;
 module_param_named(sleep_time_override,
 	msm_pm_sleep_time_override, int, S_IRUGO | S_IWUSR | S_IWGRP);
+static uint64_t suspend_wake_time;
 
 enum {
 	MSM_PM_DEBUG_SUSPEND = BIT(0),
@@ -1070,9 +1071,11 @@ static int msm_pm_enter(suspend_state_t state)
 
 		clock_debug_print_enabled();
 
+		if (!suspend_wake_time)
+			suspend_wake_time =  msm_pm_sleep_time_override;
 		if (msm_pm_sleep_time_override > 0) {
 			int64_t ns = NSEC_PER_SEC *
-				(int64_t) msm_pm_sleep_time_override;
+				(int64_t) suspend_wake_time;
 			do_div(ns, NSEC_PER_SEC / SCLK_HZ);
 			msm_pm_max_sleep_time = (uint32_t) ns;
 		}
@@ -1122,6 +1125,21 @@ enter_exit:
 
 	return 0;
 }
+
+void lpm_suspend_wake_time(uint64_t wakeup_time)
+{
+	if (wakeup_time <= 0) {
+		suspend_wake_time = msm_pm_sleep_time_override;
+		return;
+	}
+
+	if (msm_pm_sleep_time_override &&
+			(msm_pm_sleep_time_override < wakeup_time))
+			suspend_wake_time = msm_pm_sleep_time_override;
+	else
+			suspend_wake_time = wakeup_time;
+}
+EXPORT_SYMBOL(lpm_suspend_wake_time);
 
 void msm_pm_set_sleep_ops(struct msm_pm_sleep_ops *ops)
 {
